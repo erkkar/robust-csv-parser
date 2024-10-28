@@ -146,7 +146,7 @@ class RobustCSVParser:
     def parse_multifile(
         self,
         filepaths: Iterable[Path | str],
-        n_jobs: int,
+        n_jobs: int = 1,
     ) -> pd.DataFrame:
         """Parse multiple files using multiple processes
 
