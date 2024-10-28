@@ -1,0 +1,16 @@
+[project]
+name = "robust_csv_parser"
+version = "1.0.0"
+authors = [{ name = "Erkka Rinne", email = "erkka.rinne@fmi.fi" }]
+description = "Module for robust parsing of CSV files"
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+]
+dependencies = ["pandas", "joblib"]
+
+[tool.setuptools]
+py-modules = ["robust_csv_parser"]
