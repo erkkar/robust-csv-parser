@@ -14,7 +14,7 @@ The default time zone is UTC if other cannot be inferred.
 
 ```Python
 >>> from robust_csv_parser import RobustCSVParser
->>> parser = pyflux.RobustCSVParser(
+>>> parser = RobustCSVParser(
         sep=",",
         encoding="utf8",
         header_regex=r"Period start|Read time",
