@@ -1,5 +1,6 @@
 """Functions for parsing PyFlux output files"""
 
+import functools
 import gzip
 import logging
 import multiprocessing
@@ -11,7 +12,6 @@ from logging.handlers import QueueHandler, QueueListener
 from pathlib import Path
 from typing import Callable
 
-import joblib
 import pandas as pd
 
 logger = logging.getLogger(__name__)
@@ -161,14 +161,15 @@ class RobustCSVParser:
         listener.start()
         logger.info("Starting read using %d workers", n_jobs)
         try:
-            frames = joblib.Parallel(n_jobs=n_jobs)(
-                joblib.delayed(self.parse)(
-                    filepath,
-                    log_queue=log_queue,
-                    log_level=root_logger.getEffectiveLevel(),
+            with multiprocessing.Pool(processes=n_jobs) as pool:
+                frames = pool.map(
+                    functools.partial(
+                        self.parse,
+                        log_queue=log_queue,
+                        log_level=root_logger.getEffectiveLevel(),
+                    ),
+                    filepaths,
                 )
-                for filepath in filepaths
-            )
         finally:
             logger.info("Done")
             listener.stop()

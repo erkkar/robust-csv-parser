@@ -38,7 +38,7 @@ Parsing multiple files:
 
 ```Python
 >>> from pathlib import Path
->>> df = parser.parse_multifile(Path('/path/to/data').glob('*.csv'))
+>>> df = parser.parse_multifile(Path('/path/to/data').glob('*.csv'), n_jobs=2)
 ```
 
 
