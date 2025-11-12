@@ -232,12 +232,13 @@ class RobustCSVParser:
                 tz=tz,
                 name=df.index.name,
             ).tz_convert(self.default_tz)
-            try:
-                with warnings.catch_warnings():
-                    warnings.filterwarnings(message="overflow", action="ignore")
-                    df = df.astype(self.csv_kwargs.get("dtype", None))
-            except (ValueError, RuntimeWarning) as err:
-                logger.error("Failed converting data in %s: %s", source, str(err))
-                return None
+            if "dtype" in self.csv_kwargs:
+                try:
+                    with warnings.catch_warnings():
+                        warnings.filterwarnings(message="overflow", action="ignore")
+                        df = df.astype(self.csv_kwargs["dtype"])
+                except (ValueError, RuntimeWarning) as err:
+                    logger.error("Failed converting data in %s: %s", source, str(err))
+                    return None
 
         return df
