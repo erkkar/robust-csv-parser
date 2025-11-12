@@ -5,6 +5,8 @@ Potential use cases:
 * Multiple headers, some in the middle of the file
 * Headers change in the middle of the file
 
+Python version 3.11 or higher and the pandas package are required.
+
 ## Examples
 
 Parse a single file where a header row begins with ‘Period start’ or ‘Read time’.
