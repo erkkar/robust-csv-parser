@@ -210,7 +210,7 @@ class RobustCSVParser:
             return None
 
         # Parse timestamps
-        if self.csv_kwargs.get("parse_dates", None) is True:
+        if self.csv_kwargs.get("parse_dates", None):
             # Try to guess the time zone
             index_name = df.index.name
             m = re.search(r"UTC(\+\d+)", index_name)
