@@ -154,25 +154,28 @@ class RobustCSVParser:
             filepaths: An iterable of file paths
             n_jobs: Number of parallel jobs to spawn
         """
-        root_logger = logging.getLogger()
-        mgr = multiprocessing.Manager()
-        log_queue = mgr.Queue()
-        listener = QueueListener(log_queue, *root_logger.handlers)
-        listener.start()
-        logger.info("Starting read using %d workers", n_jobs)
-        try:
-            with multiprocessing.Pool(processes=n_jobs) as pool:
-                frames = pool.map(
-                    functools.partial(
-                        self.parse,
-                        log_queue=log_queue,
-                        log_level=root_logger.getEffectiveLevel(),
-                    ),
-                    filepaths,
-                )
-        finally:
-            logger.info("Done")
-            listener.stop()
+        if n_jobs > 1:
+            root_logger = logging.getLogger()
+            mgr = multiprocessing.Manager()
+            log_queue = mgr.Queue()
+            listener = QueueListener(log_queue, *root_logger.handlers)
+            listener.start()
+            logger.info("Starting read using %d workers", n_jobs)
+            try:
+                with multiprocessing.Pool(processes=n_jobs) as pool:
+                    frames = pool.map(
+                        functools.partial(
+                            self.parse,
+                            log_queue=log_queue,
+                            log_level=root_logger.getEffectiveLevel(),
+                        ),
+                        filepaths,
+                    )
+            finally:
+                logger.info("Done")
+                listener.stop()
+        else:
+            frames = map(self.parse, filepaths)
         try:
             return pd.concat(frames, axis=0, join="outer")
         except ValueError:

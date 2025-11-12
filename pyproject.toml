@@ -1,6 +1,6 @@
 [project]
 name = "robust_csv_parser"
-version = "1.1.0"
+version = "1.1.1"
 authors = [{ name = "Erkka Rinne", email = "erkka.rinne@fmi.fi" }]
 description = "Module for robust parsing of CSV files"
 readme = "README.md"
