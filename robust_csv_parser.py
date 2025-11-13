@@ -72,15 +72,14 @@ class RobustCSVParser:
         self.default_tz = default_tz
 
     def parse(
-        self, filepath_or_buffer, logger=None, log_level="warning"
+        self, filepath_or_buffer, logger=logger, log_level="warning"
     ) -> pd.DataFrame | None:
         """Parse a file
 
         Args:
             filepath_or_buffer: Path to a file or a file-like object
-            log_queue: Existing logging queue to use.
-                Defaults to None in which case the default logger is used.
-            log_level: Logging level, fefaults to logging.WARNING.
+            logger: Logger to use, defaults to the module-level logger.
+            log_level: Logging level, fefaults to 'warning'.
         """
         if logger is None:
             logger = logging.getLogger("RobustDataParser.parse")
@@ -157,13 +156,13 @@ class RobustCSVParser:
             logger.info("Starting read using %d workers", n_jobs)
             frames = joblib.Parallel(n_jobs=n_jobs)(
                 joblib.delayed(self.parse)(
-                    filepath, log_level=root_logger.getEffectiveLevel()
+                    filepath, logger=None, log_level=root_logger.getEffectiveLevel()
                 )
                 for filepath in filepaths
             )
             logger.info("Done")
         else:
-            frames = map(functools.partial(self.parse, logger=logger), filepaths)
+            frames = map(self.parse, filepaths)
         try:
             return pd.concat(frames, axis=0, join="outer")
         except ValueError:
