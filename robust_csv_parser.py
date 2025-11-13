@@ -3,15 +3,14 @@
 import functools
 import gzip
 import logging
-import multiprocessing
 import re
 import warnings
 from collections.abc import Iterable
 from io import StringIO, TextIOBase
-from logging.handlers import QueueHandler, QueueListener
 from pathlib import Path
 from typing import Callable
 
+import joblib
 import pandas as pd
 
 logger = logging.getLogger(__name__)
@@ -73,10 +72,7 @@ class RobustCSVParser:
         self.default_tz = default_tz
 
     def parse(
-        self,
-        filepath_or_buffer,
-        log_queue=None,
-        log_level=logging.WARNING,
+        self, filepath_or_buffer, logger=None, log_level="warning"
     ) -> pd.DataFrame | None:
         """Parse a file
 
@@ -86,14 +82,15 @@ class RobustCSVParser:
                 Defaults to None in which case the default logger is used.
             log_level: Logging level, fefaults to logging.WARNING.
         """
-        if log_queue is not None:
-            worker_logger = logging.getLogger("RobustDataParser.parse")
-            if not worker_logger.hasHandlers():
-                worker_logger.addHandler(QueueHandler(log_queue))
-            worker_logger.setLevel(log_level)
-        else:
-            worker_logger = logger
-        worker_logger.info("Reading file %s", filepath_or_buffer)
+        if logger is None:
+            logger = logging.getLogger("RobustDataParser.parse")
+        if not logger.hasHandlers():
+            logger.setLevel(log_level)
+            sh = logging.StreamHandler()
+            sh.setFormatter(logging.Formatter("%(levelname)s:%(name)s:%(message)s"))
+            logger.addHandler(sh)
+
+        logger.info("Reading file %s", filepath_or_buffer)
         with _FilepathOrBuffer(filepath_or_buffer, self.encoding) as fp:
             # Try to guess the header string from first field of first row if not given
             if self.header_string is None and self.header_regex is None:
@@ -113,7 +110,7 @@ class RobustCSVParser:
         try:
             start_prev = next(headerrow_finder).start()
         except StopIteration:
-            worker_logger.error("No header found in %s", filepath_or_buffer)
+            logger.error("No header found in %s", filepath_or_buffer)
             return None
         # Iterate over all found headers and finally from the last header to end (None)
         for start in [match.start() for match in headerrow_finder] + [None]:
@@ -121,7 +118,7 @@ class RobustCSVParser:
                 self._parse_frame(
                     data[slice(start_prev, start)],  # parse data between indices
                     str(filepath_or_buffer),
-                    worker_logger,
+                    logger,
                 )
             )
             start_prev = start
@@ -130,14 +127,14 @@ class RobustCSVParser:
         try:
             df = pd.concat(frames, join="outer")
         except ValueError:
-            worker_logger.error("All empty data in %s", filepath_or_buffer)
+            logger.error("All empty data in %s", filepath_or_buffer)
             return None
         df.attrs["source"] = str(filepath_or_buffer)
         if self.process_func is not None:
             try:
                 return self.process_func(df)
             except Exception as err:
-                worker_logger.error(
+                logger.error(
                     "Unable to process file %s: %s", filepath_or_buffer, str(err)
                 )
                 return None
@@ -154,28 +151,19 @@ class RobustCSVParser:
             filepaths: An iterable of file paths
             n_jobs: Number of parallel jobs to spawn
         """
+
+        root_logger = logging.getLogger()
         if n_jobs > 1:
-            root_logger = logging.getLogger()
-            mgr = multiprocessing.Manager()
-            log_queue = mgr.Queue()
-            listener = QueueListener(log_queue, *root_logger.handlers)
-            listener.start()
             logger.info("Starting read using %d workers", n_jobs)
-            try:
-                with multiprocessing.Pool(processes=n_jobs) as pool:
-                    frames = pool.map(
-                        functools.partial(
-                            self.parse,
-                            log_queue=log_queue,
-                            log_level=root_logger.getEffectiveLevel(),
-                        ),
-                        filepaths,
-                    )
-            finally:
-                logger.info("Done")
-                listener.stop()
+            frames = joblib.Parallel(n_jobs=n_jobs)(
+                joblib.delayed(self.parse)(
+                    filepath, log_level=root_logger.getEffectiveLevel()
+                )
+                for filepath in filepaths
+            )
+            logger.info("Done")
         else:
-            frames = map(self.parse, filepaths)
+            frames = map(functools.partial(self.parse, logger=logger), filepaths)
         try:
             return pd.concat(frames, axis=0, join="outer")
         except ValueError:
