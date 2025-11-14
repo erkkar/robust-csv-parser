@@ -5,7 +5,8 @@ Potential use cases:
 * Multiple headers, some in the middle of the file
 * Headers change in the middle of the file
 
-Python version 3.11 or higher and the pandas package are required.
+In addition to Python version 3.11 or higher, the `pandas` and `joblib` 
+packages are required.
 
 ## Examples
 
