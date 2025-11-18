@@ -72,14 +72,14 @@ class RobustCSVParser:
         self.default_tz = default_tz
 
     def parse(
-        self, filepath_or_buffer, logger=logger, log_level="warning"
+        self, filepath_or_buffer, logger=logger, log_level="WARNING"
     ) -> pd.DataFrame | None:
         """Parse a file
 
         Args:
             filepath_or_buffer: Path to a file or a file-like object
             logger: Logger to use, defaults to the module-level logger.
-            log_level: Logging level, fefaults to 'warning'.
+            log_level: Logging level, fefaults to 'WARNING'.
         """
         if logger is None:
             logger = logging.getLogger("RobustDataParser.parse")
